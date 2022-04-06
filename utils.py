@@ -11,6 +11,56 @@ import re
 
 # context
 
+def select_object_hierarty_root(obj: object) -> object:
+    tree = [obj]
+    while obj.parent:
+        obj = obj.parent
+        tree.append(obj)
+
+    return obj
+
+def get_bbox_vertices(obj: object) -> list:
+    '''obj: "mesh object"
+       return lists: bbox_vertices, bbox_max, bbox_min, bbox_root
+    '''
+    bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
+    bbox = obj.bound_box
+    bbox_vertices = [vector[:] for vector in bbox]
+    bbox_vertices = [numpy.array(vertice) + obj.location for vertice in bbox_vertices]
+    bbox_max_x = max([vertice[0] for vertice in bbox_vertices])
+    bbox_max_y = max([vertice[1] for vertice in bbox_vertices])
+    bbox_max_z = max([vertice[2] for vertice in bbox_vertices])
+    bbox_min_x = min([vertice[0] for vertice in bbox_vertices])
+    bbox_min_y = min([vertice[1] for vertice in bbox_vertices])
+    bbox_min_z = min([vertice[2] for vertice in bbox_vertices])
+    bbox_center_x = (bbox_max_x + bbox_min_x)/2
+    bbox_center_y = (bbox_max_y + bbox_min_y)/2
+    bbox_center_z = (bbox_max_z + bbox_min_z)/2
+
+    bbox_max = (bbox_max_x, bbox_max_y, bbox_max_z)
+    bbox_min = (bbox_min_x, bbox_min_y, bbox_min_z)
+    bbox_root = (bbox_center_x, bbox_center_y, bbox_min_z)
+
+    return bbox_vertices, bbox_max, bbox_min, bbox_root
+
+
+def set_origin(obj: object, location: tuple) -> tuple:
+    '''
+    '''
+    context = bpy.context
+    # hold_selection = context.selected_objects
+    [obj.select_set(False) for obj in context.selected_objects]
+    cursor = context.scene.cursor
+    hold_location = tuple(cursor.location)
+    cursor.location = location
+    obj.select_set(True)
+    bpy.ops.object.origin_set(type='ORIGIN_CURSOR')
+    cursor.location = hold_location
+    obj.select_set(False)
+
+    return location
+
+
 def context_collect_objects(mode: str, type: str) -> list:
     ''' mode: "ALL/SELECTION"
         type: "MESH/CURVE/SURFACE/LIGHT...etc"
